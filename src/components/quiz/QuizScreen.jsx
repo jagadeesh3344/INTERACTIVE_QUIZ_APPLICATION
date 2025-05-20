@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, XCircle } from 'lucide-react';
+import { shuffleArray } from '@/lib/utils';
 
 const QuizScreen = ({
   currentQuestion,
@@ -15,6 +16,21 @@ const QuizScreen = ({
   onNextQuestion,
   itemVariants
 }) => {
+  const shuffledOptions = useMemo(() => {
+    if (currentQuestion && currentQuestion.options) {
+      return shuffleArray([...currentQuestion.options]);
+    }
+    return [];
+  }, [currentQuestion]);
+
+  if (!currentQuestion) {
+    return (
+      <div className="text-center p-10">
+        <p className="text-xl text-white">Loading question...</p>
+      </div>
+    );
+  }
+
   return (
     <Card className="bg-white/10 backdrop-blur-lg border-white/20 shadow-2xl rounded-xl overflow-hidden">
       <CardHeader className="p-6 bg-black/20">
@@ -31,7 +47,7 @@ const QuizScreen = ({
         </motion.p>
       </CardHeader>
       <CardContent className="p-6 space-y-4">
-        {currentQuestion.options.map((option, index) => {
+        {shuffledOptions.map((option, index) => {
           const isCorrect = option === currentQuestion.correctAnswer;
           const isSelected = selectedAnswer === option;
           let buttonClass = "bg-white/20 hover:bg-white/30 border-white/30 text-white";
@@ -48,7 +64,7 @@ const QuizScreen = ({
           }
 
           return (
-            <motion.div variants={itemVariants} key={index}>
+            <motion.div variants={itemVariants} key={option + '-' + index}>
               <Button
                 variant="outline"
                 size="lg"

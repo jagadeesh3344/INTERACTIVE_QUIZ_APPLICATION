@@ -2,20 +2,30 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { RotateCcw, Trophy } from 'lucide-react';
+import { RotateCcw, Trophy, PartyPopper } from 'lucide-react';
+import CelebrationEffect from '@/components/quiz/CelebrationEffect';
 
 const ResultsScreen = ({ score, totalQuestions, highScore, onRestartQuiz, itemVariants }) => {
+  const isPerfectScore = score === totalQuestions && totalQuestions > 0;
+
   return (
-    <div className="text-center">
-      <Card className="w-full max-w-md bg-white/10 backdrop-blur-lg border-white/20 shadow-2xl rounded-xl">
+    <div className="text-center relative">
+      {isPerfectScore && <CelebrationEffect />}
+      <Card className="w-full max-w-md bg-white/10 backdrop-blur-lg border-white/20 shadow-2xl rounded-xl overflow-hidden z-10 relative">
         <CardHeader>
           <motion.div variants={itemVariants}>
-            <Trophy size={64} className="mx-auto mb-4 text-yellow-300" />
-            <CardTitle className="text-4xl font-bold text-white">Quiz Completed!</CardTitle>
+            {isPerfectScore ? (
+              <PartyPopper size={64} className="mx-auto mb-4 text-yellow-300 animate-bounce" />
+            ) : (
+              <Trophy size={64} className="mx-auto mb-4 text-yellow-300" />
+            )}
+            <CardTitle className="text-4xl font-bold text-white">
+              {isPerfectScore ? "Congratulations!" : "Quiz Completed!"}
+            </CardTitle>
           </motion.div>
           <motion.div variants={itemVariants}>
             <CardDescription className="text-lg text-gray-200 pt-2">
-              You've reached the end of the quiz.
+              {isPerfectScore ? "You got a perfect score!" : "You've reached the end of the quiz."}
             </CardDescription>
           </motion.div>
         </CardHeader>

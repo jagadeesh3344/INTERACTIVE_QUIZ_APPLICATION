@@ -1,39 +1,26 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Toaster } from './components/ui/toaster';
-import { useToast } from './components/ui/use-toast';
-import initialQuizData from './quizData';
-import WelcomeScreen from './components/quiz/WelcomeScreen';
-import QuizScreen from './components/quiz/QuizScreen';
-import ResultsScreen from './components/quiz/ResultsScreen';
+import { Toaster } from '@/components/ui/toaster';
+import { useToast } from '@/components/ui/use-toast';
+import initialQuizData from '@/quizData';
+import WelcomeScreen from '@/components/quiz/WelcomeScreen';
+import QuizScreen from '@/components/quiz/QuizScreen';
+import ResultsScreen from '@/components/quiz/ResultsScreen';
 import { motion, AnimatePresence } from 'framer-motion';
+import { shuffleArray } from '@/lib/utils';
 
-const QUESTIONS_PER_QUIZ = 5; 
-
-const shuffleArray = (array) => {
-  const shuffledArray = [...array];
-  for (let i = shuffledArray.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffledArray[i], shuffledArray[j]] = [shuffledArray[j], shuffledArray[i]];
-  }
-  return shuffledArray;
-};
+const QUESTIONS_PER_QUIZ = 10; 
 
 const selectRandomQuestions = (allQuestions, count) => {
   const shuffled = shuffleArray(allQuestions);
-  return shuffled.slice(0, count);
-};
-
-const areQuestionSetsEqual = (setA, setB) => {
-  if (setA.length !== setB.length) return false;
-  for (let i = 0; i < setA.length; i++) {
-    if (setA[i].question !== setB[i].question) return false;
+  if (shuffled.length < count) {
+    console.warn(`Warning: Not enough unique questions available in quizData.js to select ${count} questions. Please add more questions. Displaying ${shuffled.length} questions.`);
+    return shuffled;
   }
-  return true;
+  return shuffled.slice(0, count);
 };
 
 const App = () => {
   const [quizData, setQuizData] = useState([]);
-  const [previousQuizData, setPreviousQuizData] = useState([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
@@ -48,22 +35,15 @@ const App = () => {
   });
 
   const initializeQuiz = useCallback(() => {
-    let newQuestions;
-    let attempts = 0;
-    do {
-      newQuestions = selectRandomQuestions(initialQuizData, QUESTIONS_PER_QUIZ);
-      attempts++;
-      // Avoid infinite loop, max 10 attempts
-      if (attempts > 10) break;
-    } while (areQuestionSetsEqual(newQuestions, previousQuizData));
+    const newQuestions = selectRandomQuestions(initialQuizData, QUESTIONS_PER_QUIZ);
     setQuizData(newQuestions);
-    setPreviousQuizData(newQuestions);
     setCurrentQuestionIndex(0);
     setScore(0);
     setSelectedAnswer(null);
     setIsAnswered(false);
     setShowResults(false);
-  }, [previousQuizData]);
+  }, []);
+
 
   useEffect(() => {
     if (showResults) {
@@ -85,7 +65,7 @@ const App = () => {
     setSelectedAnswer(answer);
     setIsAnswered(true);
 
-    if (answer === quizData[currentQuestionIndex].correctAnswer) {
+    if (quizData[currentQuestionIndex] && answer === quizData[currentQuestionIndex].correctAnswer) {
       setScore(prevScore => prevScore + 1);
       toast({
         title: "Correct!",
@@ -94,7 +74,7 @@ const App = () => {
         duration: 1500,
         className: "bg-green-500 border-green-600 text-white",
       });
-    } else {
+    } else if (quizData[currentQuestionIndex]) {
       toast({
         title: "Incorrect!",
         description: `The correct answer was: ${quizData[currentQuestionIndex].correctAnswer}`,
@@ -146,7 +126,7 @@ const App = () => {
 
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 text-white">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 text-white overflow-hidden relative">
       <AnimatePresence mode="wait">
         {!quizStarted ? (
           <motion.div
@@ -165,6 +145,7 @@ const App = () => {
             initial="hidden"
             animate="visible"
             exit="exit"
+            className="w-full max-w-md"
           >
             <ResultsScreen 
               score={score} 
@@ -176,14 +157,14 @@ const App = () => {
           </motion.div>
         ) : (
           <motion.div
-            key={`question-${currentQuestionIndex}-${quizData[currentQuestionIndex]?.question}`}
+            key={`question-${currentQuestionIndex}-${quizData[currentQuestionIndex]?.question || 'loading'}`}
             variants={containerVariants}
             initial="hidden"
             animate="visible"
             exit="exit"
             className="w-full max-w-2xl"
           >
-            {quizData.length > 0 && currentQuestionIndex < quizData.length && (
+            {quizData.length > 0 && currentQuestionIndex < quizData.length && quizData[currentQuestionIndex] ? (
               <QuizScreen
                 currentQuestion={quizData[currentQuestionIndex]}
                 currentQuestionIndex={currentQuestionIndex}
@@ -195,6 +176,10 @@ const App = () => {
                 onNextQuestion={handleNextQuestion}
                 itemVariants={itemVariants}
               />
+            ) : (
+              <div className="text-center p-10">
+                <p className="text-xl">Loading questions...</p>
+              </div>
             )}
           </motion.div>
         )}
